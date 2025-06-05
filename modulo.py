@@ -236,3 +236,6 @@ class RegresionLineal(Regresion):
 
 class RegresionLogistica(Regresion):
   pass
+
+class nuevafuncion(probandogit):
+   pass
