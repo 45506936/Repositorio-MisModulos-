@@ -231,7 +231,7 @@ class RegresionLineal(Regresion):
 
     def intervalo_prediccion(self, new_x, alpha=0.05):
       if self.resultado is None:
-         self.ajustar_modelo_lineal()
+        self.ajustar_modelo_lineal()
 
       X_new = sm.add_constant(new_x)
       prediccion = self.resultado.get_prediction(X_new)
@@ -333,4 +333,4 @@ incluyendo métricas de clasificación, predicción con umbral personalizado y c
 
 
 class nuevafuncion(probandogit):
-   pass
+  pass
