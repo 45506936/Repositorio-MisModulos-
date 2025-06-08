@@ -235,7 +235,18 @@ class RegresionLineal(Regresion):
       return intervalo
 
 class RegresionLogistica(Regresion):
-  pass
+  
+    def __init__(self, x, y):
+      super().__init__(x, y)
+
+    def predecir(self, new_x):
+      miRLog = Regresion(self.x, self.y)
+      res = miRLog.ajustar_modelo_logistico()
+      X_new = sm.add_constant(new_x)
+
+      return res.predict(X_new)
+
+    pass
 
 class nuevafuncion(probandogit):
    pass
