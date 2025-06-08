@@ -248,5 +248,49 @@ class RegresionLogistica(Regresion):
 
     pass
 
-class nuevafuncion(probandogit):
-   pass
+class Cualitativas:
+    def __init__(self, observados, probabilidades):
+        """
+        Test de bondad de ajuste mediante Método de Chi Cuadrado
+        Entradas: observados = datos muestrales
+                  probabilidades teóricas bajo la hipótesis nula
+        """
+        self.observados = observados
+        self.p = probabilidades
+        self.n = sum(observados)  # Sumar los observados para calcular los esperados
+
+        # Verificar que las probabilidades sumen 1
+        if not np.isclose(sum(self.p), 1):
+            raise ValueError("Las probabilidades deben ser una lista de números que sumen 1.")
+
+        # Verificar que las longitudes de observados y probabilidades sean iguales
+        if len(self.p) != len(self.observados):
+            raise ValueError("Probabilidades y observados deben tener igual tamaño.")
+
+        # Calcular los esperado
+        self.esperados = [self.n * p for p in probabilidades]
+
+    def chi_cuadrado(self):
+        """
+        Calcula el estadístico Chi Cuadrado
+        """
+        self.estadistico = np.sum((np.array(self.observados) - np.array(self.esperados)) ** 2 / np.array(self.esperados))
+        return self.estadistico
+
+    def percentil(self, alpha):
+        """
+        Calcula el valor crítico del estadístico (el cual no debe superar)
+        En la entrada se debe agregar como parámetro el alfa correspondiente.
+        """
+        self.df = len(self.observados) - 1  # grados de libertad
+        percentil_chi2 = chi2.ppf(q=1 - alpha, df=self.df)
+        return percentil_chi2
+
+    def p_valor(self):
+        """
+        Calcula el p_valor correspondiente con significancia 1-alfa del test de hipótesis
+        H_0 = La distribución de los datos sigue la probabilidad teórica
+        H_1 = La distribución de los datos NO sigue la probabilidad teórica
+        """
+        p_valor = 1 - chi2.cdf(self.estadistico, self.df)
+        return p_valor
