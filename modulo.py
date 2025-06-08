@@ -4,6 +4,11 @@ import matplotlib.pyplot as plt
 import statsmodels.api as sm
 import scipy.stats as stats
 from numpy.random import uniform, normal
+from sklearn.metrics import (
+    confusion_matrix,
+    roc_curve,
+    auc
+)
 
 class AnalisisDescriptivo:
   def __init__(self, datos):
@@ -226,7 +231,7 @@ class RegresionLineal(Regresion):
 
     def intervalo_prediccion(self, new_x, alpha=0.05):
       if self.resultado is None:
-         self.ajustar_modelo_lineal()
+        self.ajustar_modelo_lineal()
 
       X_new = sm.add_constant(new_x)
       prediccion = self.resultado.get_prediction(X_new)
@@ -234,10 +239,40 @@ class RegresionLineal(Regresion):
 
       return intervalo
 
-class RegresionLogistica(Regresion):
-  
+
+
+class RegresionLogistica:
+    """""
+Este clase proporciona funciones para realizar regresión logística utilizando la librería statsmodels,
+incluyendo métricas de clasificación, predicción con umbral personalizado y curva ROC con AUC.
+    """
+
     def __init__(self, x, y):
+        """
+        Inicializa una instancia de la clase RegresionLogistica.
+        """
       super().__init__(x, y)
+
+
+    def entrenar(self, X: np.ndarray, y: np.ndarray):
+        """
+        Entrena el modelo de regresión logística utilizando statsmodels.
+
+        Ejemplo:
+            >>> X = np.array([[1], [2], [3], [4]])
+            >>> y = np.array([0, 0, 1, 1])
+            >>> model = RegresionLogistica()
+            >>> model.entrenar(X, y)
+        """
+        X = sm.add_constant(X)  # Agregar constante
+        self.modelo = sm.Logit(y, X)
+        self.resultados = self.modelo.fit(disp=0)
+
+        # Guardar estadísticas relevantes
+        self.betas = self.resultados.params
+        self.stderr = self.resultados.bse
+        self.t_obs = self.resultados.tvalues
+        self.p_valores = self.resultados.pvalues
 
     def predecir(self, new_x):
       miRLog = Regresion(self.x, self.y)
@@ -246,7 +281,56 @@ class RegresionLogistica(Regresion):
 
       return res.predict(X_new)
 
-    pass
+    def obtener_metricas(self, X_test: np.ndarray, y_test: np.ndarray) -> dict:
+        """
+        Calcula métricas de evaluación del modelo sobre un conjunto de prueba.
+
+            >>> model.obtener_metricas(X_test, y_test)
+            {'confusion_matrix': ..., 'error': ..., 'sensibilidad': ..., 'especificidad': ...}
+        """
+        y_pred = self.predecir(X_test)
+        cm = confusion_matrix(y_test, y_pred)
+        tn, fp, fn, tp = cm.ravel()
+        error = (fp + fn) / (tn + fp + fn + tp)
+        sensibilidad = tp / (tp + fn) if (tp + fn) > 0 else 0
+        especificidad = tn / (tn + fp) if (tn + fp) > 0 else 0
+
+        return {
+            'confusion_matrix': cm,
+            'error': error,
+            'sensibilidad': sensibilidad,
+            'especificidad': especificidad
+        }
+
+    def curva_roc(self, X_test: np.ndarray, y_test: np.ndarray) -> Tuple[np.ndarray, np.ndarray, float]:
+        """
+        Calcula y grafica la curva ROC del modelo.
+
+        """
+        X = sm.add_constant(X_test)
+        y_prob = self.resultados.predict(X)
+        fpr, tpr, _ = roc_curve(y_test, y_prob)
+        auc_score = auc(fpr, tpr)
+
+        # Graficar la curva
+        plt.figure(figsize=(6, 4))
+        plt.plot(fpr, tpr, label=f'AUC = {auc_score:.2f}')
+        plt.plot([0, 1], [0, 1], 'k--', label='Azar')
+        plt.xlabel('Tasa de falsos positivos (FPR)')
+        plt.ylabel('Tasa de verdaderos positivos (TPR)')
+        plt.title('Curva ROC')
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+
+        return fpr, tpr, auc_score
+
+    def resumen(self):
+        """
+        Imprime el resumen del modelo ajustado.
+        """
+        print(self.resultados.summary())
+
 
 class Cualitativas:
     def __init__(self, observados, probabilidades):
@@ -294,3 +378,5 @@ class Cualitativas:
         """
         p_valor = 1 - chi2.cdf(self.estadistico, self.df)
         return p_valor
+class nuevafuncion(probandogit):
+  pass
