@@ -209,24 +209,50 @@ class GeneradoraDeDatos:
 
 
 class Regresion:
-  def __init__(self,x,y):
-    self.x = x
-    self.y = y
+    """
+    Clase base para modelos de regresión lineal y logística.
+    """
 
-  def ajustar_modelo_lineal(self):
-    X = sm.add_constant(self.x)
-    model = sm.OLS(self.y,X)
-    result = model.fit()
+    def __init__(self, x, y):
+        """
+        Inicializa el objeto con variables predictoras x y respuesta y.
 
-  def ajustar_modelo_logistico(self):
-    X = sm.add_constant(self.x)
-    modelo = sm.Logit(self.y, X)
-    result = modelo.fit()
+        Parámetros:
+        - x: DataFrame con las variables independientes.
+        - y: Serie con la variable dependiente.
+        """
+        self.x = x
+        self.y = y
+        self.resultado
+
+    def ajustar_modelo_lineal(self):
+        """
+        Ajusta un modelo de regresión lineal utilizando OLS (mínimos cuadrados ordinarios).
+        """
+        X = sm.add_constant(self.x)
+        modelo = sm.OLS(self.y, X)
+        self.resultado = modelo.fit()
+
+    def ajustar_modelo_logistico(self):
+        """
+        Ajusta un modelo de regresión logística binaria.
+        """
+        X = sm.add_constant(self.x)
+        modelo = sm.Logit(self.y, X)
+        self.resultado = modelo.fit()
   pass
 
 
 class RegresionLineal(Regresion):
+    """
+    clase para análisis y visualización específica de regresión lineal.
+    """
+
     def graficar_dispersión_y_recta(self):
+        """
+        Grafica la dispersión de cada variable independiente frente a la respuesta,
+        junto con la recta de regresión estimada manteniendo el resto de variables en cero.
+        """
         if self.resultado is None:
             self.ajustar_modelo_lineal()
 
@@ -234,9 +260,11 @@ class RegresionLineal(Regresion):
             plt.scatter(self.x[col], self.y, label='Datos')
 
             X_plot = self.x.copy()
+
+            # Fijar las otras variables en cero para aislar el efecto de `col`
             for other_col in X_plot.columns:
                 if other_col != col:
-                    X_plot[other_col] = 0  # fijamos las demás en cero
+                    X_plot[other_col] = 0
 
             X_plot = sm.add_constant(X_plot)
             y_pred = self.resultado.predict(X_plot)
@@ -246,12 +274,19 @@ class RegresionLineal(Regresion):
             plt.ylabel('Respuesta')
             plt.title(f'{col} vs Respuesta')
             plt.legend()
+            plt.grid(True)
             plt.show()
 
-    def coeficiente_correlacion(self):
+    def coeficiente_correlacion(self) -> pd.Series:
+        """
+        Calcula el coeficiente de correlación de Pearson entre cada predictor y la respuesta.
+        """
         return self.x.apply(lambda col: col.corr(self.y))
 
     def r2_y_ajustado(self):
+        """
+        Devuelve el R² y R² ajustado del modelo.
+        """
         if self.resultado is None:
             self.ajustar_modelo_lineal()
         return {
@@ -260,43 +295,62 @@ class RegresionLineal(Regresion):
         }
 
     def residuos(self):
+        """
+        Devuelve los residuos del modelo ajustado.
+        """
         if self.resultado is None:
             self.ajustar_modelo_lineal()
         return self.resultado.resid
 
     def analisis_residuos(self):
+        """
+        Muestra el QQ plot de los residuos y el gráfico de residuos vs. valores predichos.
+        """
         if self.resultado is None:
             self.ajustar_modelo_lineal()
+
         residuos = self.resultado.resid
         predichos = self.resultado.fittedvalues
 
         # QQ plot
         sm.qqplot(residuos, line='45')
         plt.title("QQ Plot de los residuos")
+        plt.grid(True)
         plt.show()
 
         # Residuos vs valores predichos
-        plt.scatter(predichos, residuos)
+        plt.scatter(predichos, residuos, alpha=0.7)
         plt.axhline(y=0, color='red', linestyle='--')
         plt.xlabel("Valores predichos")
         plt.ylabel("Residuos")
         plt.title("Residuos vs Valores predichos")
+        plt.grid(True)
         plt.show()
 
-    def intervalos(self, alpha=0.05):
+    def intervalos(self, alpha: float = 0.05):
+        """
+        Devuelve los intervalos de confianza para los coeficientes del modelo.
+        """
         if self.resultado is None:
             self.ajustar_modelo_lineal()
         return self.resultado.conf_int(alpha=alpha)
 
-    def intervalo_prediccion(self, new_x, alpha=0.05):
-      if self.resultado is None:
-        self.ajustar_modelo_lineal()
+    def intervalo_prediccion(self, new_x, alpha: float = 0.05):
+        """
+        Calcula el intervalo de predicción para nuevas observaciones.
 
-      X_new = sm.add_constant(new_x)
-      prediccion = self.resultado.get_prediction(X_new)
-      intervalo = prediccion.summary_frame(alpha=alpha)
+        Parámetros:
+        - new_x: DataFrame con nuevas observaciones (sin la constante).
+        - alpha: Nivel de significancia.
+        """
+        if self.resultado is None:
+            self.ajustar_modelo_lineal()
 
-      return intervalo
+        X_new = sm.add_constant(new_x)
+        prediccion = self.resultado.get_prediction(X_new)
+        intervalo = prediccion.summary_frame(alpha=alpha)
+
+        return intervalo
 
 
 
