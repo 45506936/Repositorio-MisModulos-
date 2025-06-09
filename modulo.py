@@ -491,5 +491,4 @@ class Cualitativas:
         """
         p_valor = 1 - chi2.cdf(self.estadistico, self.df)
         return p_valor
-class nuevafuncion(probandogit):
-  pass
+
