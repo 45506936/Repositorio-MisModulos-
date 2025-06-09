@@ -10,107 +10,138 @@ from sklearn.metrics import (
     auc
 )
 
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import norm, uniform
+from typing import List, Tuple
+
 class AnalisisDescriptivo:
-  def __init__(self, datos):
-    self.datos = np.array(datos)
+    """
+    Clase que realiza análisis descriptivo y estimación de densidades a partir de una muestra de datos.
+    """
 
-  def calculo_de_media(self):
-    return sum(self.datos) / len(self.datos)
+    def __init__(self, datos: List[float]) -> None:
+        """
+        Inicializa la clase con los datos de entrada.
+        """
+        self.datos = np.array(datos)
 
-  def calculo_de_mediana(self):
-    return np.median(self.datos)
+    def calculo_de_media(self) -> float:
+        """
+        Calcula la media de los datos.
+        """
+        return sum(self.datos) / len(self.datos)
 
-  def genera_histograma(self, h):
-    bins = np.arange(min(self.datos) - h/2 , max(self.datos) + h, h)
-    fr_abs = np.zeros(len(bins) - 1)
+    def calculo_de_mediana(self) -> float:
+        """
+        Calcula la mediana de los datos.
+        """
+        return np.median(self.datos)
 
-    for valor in self.datos:
-      for i_bins in range(len(bins) - 1):
-        if bins[i_bins] <= valor < bins[i_bins + 1]:
-          fr_abs[i_bins] += 1
-          break
+    def genera_histograma(self, h: float) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Genera un histograma con ancho de clase h.
+        """
+        bins = np.arange(min(self.datos) - h/2, max(self.datos) + h, h)
+        fr_abs = np.zeros(len(bins) - 1)
 
-    fr_rel = fr_abs / (len(self.datos) * h)
-    return bins, fr_rel
+        # Contar frecuencias absolutas
+        for valor in self.datos:
+            for i_bins in range(len(bins) - 1):
+                if bins[i_bins] <= valor < bins[i_bins + 1]:
+                    fr_abs[i_bins] += 1
+                    break
 
-  def evalua_histograma(self, h, x):
-    bins, frec = self.genera_histograma(h)
-    resultados = np.zeros(len(x))
+        fr_rel = fr_abs / (len(self.datos) * h)
+        return bins, fr_rel
 
-    for i in range(len(x)):
-      for i_bins in range(len(bins) - 1):
-        if bins[i_bins] <= x[i] < bins[i_bins + 1]:
-          resultados[i] = frec[i_bins]
-          break
-    return resultados
-  def kernel_gaussiano(self, x):
-    # Kernel gaussiano estándar
-    valor_kernel_gaussiano = (1 / np.sqrt(2 * np.pi)) * np.exp(-0.5 * x**2)
-    return valor_kernel_gaussiano
+    def evalua_histograma(self, h: float, x: List[float]) -> np.ndarray:
+        """
+        Evalúa el histograma generado en los puntos dados por x.
+        """
+        bins, frec = self.genera_histograma(h)
+        resultados = np.zeros(len(x))
 
-  def kernel_uniforme(self, x):
-    # Kernel uniforme
-    if abs(x) <= 0.5:
-      valor_kernel_uniforme = 1
-    else:
-      valor_kernel_uniforme = 0
-    return valor_kernel_uniforme
+        for i in range(len(x)):
+            for i_bins in range(len(bins) - 1):
+                if bins[i_bins] <= x[i] < bins[i_bins + 1]:
+                    resultados[i] = frec[i_bins]
+                    break
+        return resultados
 
-  def kernel_cuadratico(self, x):
-    valor_kernel_cuadratico = 3/4 * (1-x**2) if np.abs(x) <= 1 else 0
-    return valor_kernel_cuadratico
+    def kernel_gaussiano(self, x: float) -> float:
+        """
+        Devuelve el valor del kernel gaussiano estándar en x.
+        """
+        return (1 / np.sqrt(2 * np.pi)) * np.exp(-0.5 * x**2)
 
-  def kernel_triangular (self,x):
-    if -1<x<0:
-      valor_kernel_triangular = 1+x
-    elif 0<x<1:
-      valor_kernel_triangular = 1-x
-    else:
-      valor_kernel_triangular = 0
+    def kernel_uniforme(self, x: float) -> float:
+        """
+        Devuelve el valor del kernel uniforme en x.
+        """
+        return 1.0 if abs(x) <= 0.5 else 0.0
 
-    return valor_kernel_triangular
+    def kernel_cuadratico(self, x: float) -> float:
+        """
+        Devuelve el valor del kernel cuadrático en x.
+        """
+        return 0.75 * (1 - x**2) if abs(x) <= 1 else 0.0
 
-  def mi_densidad(self, x, h, kernel):
-    # x: Puntos en los que se evaluará la densidad
-    # data: Datos
-    # h: Ancho de la ventana (bandwidth)
-    densidad = np.zeros(len(x))
-    for i in range(len(x)):
-      for j in range(len(self.datos)):
-        u = (x[i] - self.datos[j]) / h
-#Normalización de la distancia Se calcula 𝑢 u como la distancia normalizada entre el punto de evaluación x[i] y cada dato 𝑑 𝑎 𝑡 𝑎 [ 𝑗 ]. Este valor 𝑢 u es el argumento que se pasa a la función kernel, y su propósito es medir cuán lejos está 𝑑 𝑎 𝑡 𝑎 [ 𝑗 ] del punto 𝑥x[i] en unidades de ℎ.
-        if kernel == "gaussiano":
-          densidad[i] += self.kernel_gaussiano(u)
-        elif kernel == "uniforme":
-          densidad[i] += self.kernel_uniforme(u)
-        elif kernel == "cuadratico":
-          densidad[i] += self.kernel_cuadratico(u)
-        elif kernel == "triangular":
-          densidad[i] += self.kernel_triangular(u)
-    densidad = densidad / (len(self.datos) * h)
-    return densidad
-  def miqqplot(self):
+    def kernel_triangular(self, x: float) -> float:
+        """
+        Devuelve el valor del kernel triangular en x.
+        """
+        if -1 < x < 0:
+            return 1 + x
+        elif 0 < x < 1:
+            return 1 - x
+        return 0.0
 
-    media = np.mean(self.datos)
-    desvio = np.std(self.datos)
+    def mi_densidad(self, x: List[float], h: float, kernel: str) -> np.ndarray:
+        """
+        Estima la densidad.
+        
+        Parámetros:
+        - x: Puntos donde se evaluará la densidad.
+        - h: Ancho de la ventana.
+        - kernel: Tipo de kernel a usar: "gaussiano", "uniforme", "cuadratico", "triangular".
+        """
+        densidad = np.zeros(len(x))
+        for i in range(len(x)):
+            for j in range(len(self.datos)):
+                u = (x[i] - self.datos[j]) / h  # Normalización de la distancia
+                if kernel == "gaussiano":
+                    densidad[i] += self.kernel_gaussiano(u)
+                elif kernel == "uniforme":
+                    densidad[i] += self.kernel_uniforme(u)
+                elif kernel == "cuadratico":
+                    densidad[i] += self.kernel_cuadratico(u)
+                elif kernel == "triangular":
+                    densidad[i] += self.kernel_triangular(u)
 
-    x_ord = np.sort(self.datos)
-    x_ord_s = (x_ord - media) / desvio
-    n = len(self.datos)
+        densidad = densidad / (len(self.datos) * h)
+        return densidad
 
-    cuantiles_teoricos = []
+    def miqqplot(self) -> None:
+        """
+        Genera un QQ-Plot (gráfico de cuantiles teóricos vs. cuantiles muestrales estandarizados).
+        """
+        media = np.mean(self.datos)
+        desvio = np.std(self.datos)
+        x_ord = np.sort(self.datos)
+        x_ord_s = (x_ord - media) / desvio  # estandarización
+        n = len(self.datos)
 
-    for p in range(1,n+1):
-      pp = p/(n+1) #convierte lista en decimales
-      valor_cuantil = norm.ppf(pp)
-      cuantiles_teoricos.append(valor_cuantil)
+        cuantiles_teoricos = [norm.ppf(p / (n + 1)) for p in range(1, n + 1)]
 
+        plt.scatter(cuantiles_teoricos, x_ord_s, color='blue', marker='o')
+        plt.xlabel('Cuantiles teóricos')
+        plt.ylabel('Cuantiles muestrales')
+        plt.plot(cuantiles_teoricos, cuantiles_teoricos, linestyle='-', color='red')  # línea identidad
+        plt.title('QQ-Plot')
+        plt.grid(True)
+        plt.show()
 
-    plt.scatter(cuantiles_teoricos, x_ord_s, color='blue', marker='o')
-    plt.xlabel('Cuantiles teóricos')
-    plt.ylabel('Cuantiles muestrales')
-    plt.plot(cuantiles_teoricos, cuantiles_teoricos, linestyle='-', color='red')
-    plt.show()
   pass
 
 class GeneradoraDeDatos:
