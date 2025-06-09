@@ -145,38 +145,66 @@ class AnalisisDescriptivo:
   pass
 
 class GeneradoraDeDatos:
-  def __init__(self, n):
-    self.n=n
+    """
+    Clase para generar datos de diferentes distribuciones y calcular funciones de densidad teóricas.
+    """
 
-  def generar_datos_dist_norm(self, media, desvio):
-    return np.random.normal(media, desvio, self.n)
+    def __init__(self, n: int) -> None:
+        """
+        Inicializa la clase con la cantidad de datos a generar.
+        """
+        self.n = n
 
-  def pdf_norm(self, x, media, desvio):
-    p = norm.pdf(x, media, desvio)
-    return p
+    def generar_datos_dist_norm(self, media: float, desvio: float) -> np.ndarray:
+        """
+        Genera datos a partir de una distribución normal con media y desvío dado.
+        """
+        return np.random.normal(media, desvio, self.n)
 
-  def generar_datos_bs(self):
-    u = np.random.uniform(size=(self.n,))
-    y = u.copy()
-    ind = np.where(u > 0.5)[0]
-    y[ind] = np.random.normal(0, 1, size=len(ind))
-    for j in range(5):
-        ind = np.where((u > j * 0.1) & (u <= (j+1) * 0.1))[0]
-        y[ind] = np.random.normal(j/2 - 1, 1/10, size=len(ind))
-    return y
+    def pdf_norm(self, x: np.ndarray, media: float, desvio: float) -> np.ndarray:
+        """
+        Calcula la densidad normal teórica en los puntos x.
+        """
+        return norm.pdf(x, media, desvio)
 
-  def f_bs(x):
-    funcion = 0.5*norm.pdf(x,0,1)+0.1*sum([norm.pdf(x,j/2-1,0.1) for j in range(5)])
-    return funcion
+    def generar_datos_bs(self) -> np.ndarray:
+        """
+        Genera una mezcla de distribuciones normales y una uniforme, útil para pruebas de estimación de densidad.
+        """
+        u = np.random.uniform(size=self.n)
+        y = u.copy()
 
-  def generar_datos_uniforme(self, min, max):
-    datos = np.random.uniform(min, max, self.n)
-    return datos
+        # 50% serán normales estándar
+        y[u > 0.5] = np.random.normal(0, 1, size=np.sum(u > 0.5))
 
-  def distribucion_uniforme_teorica(self, a, b, num_puntos=1000):
-    x = np.linspace(a - 1, b + 1, num_puntos)  # Extiende el rango para mejor visualización
-    y = uniform.pdf(x, loc=a, scale=b-a)
-    return y
+        # 50% mezcla de normales con medias crecientes
+        for j in range(5):
+            idx = (u > j * 0.1) & (u <= (j + 1) * 0.1)
+            y[idx] = np.random.normal(j / 2 - 1, 0.1, size=np.sum(idx))
+        return y
+
+  
+    def f_bs(x: float) -> float:
+        """
+        Función de densidad teórica correspondiente a la mezcla de distribuciones usada en `generar_datos_bs`.
+        """
+        mezcla = 0.5 * norm.pdf(x, 0, 1) + 0.1 * sum([norm.pdf(x, j / 2 - 1, 0.1) for j in range(5)])
+        return mezcla
+
+    def generar_datos_uniforme(self, min_: float, max_: float) -> np.ndarray:
+        """
+        Genera datos de una distribución uniforme en el intervalo [min_, max_].
+        """
+        return np.random.uniform(min_, max_, self.n)
+
+    def distribucion_uniforme_teorica(self, a: float, b: float, num_puntos: int = 1000) -> np.ndarray:
+        """
+        Calcula la densidad teórica de una distribución uniforme en un rango extendido para visualización.
+        """
+        x = np.linspace(a - 1, b + 1, num_puntos)
+        y = uniform.pdf(x, loc=a, scale=b - a)
+        return y
+
   pass
 
 
