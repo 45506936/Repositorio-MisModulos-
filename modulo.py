@@ -2,18 +2,9 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
-import scipy.stats as stats
-from numpy.random import uniform, normal
-from sklearn.metrics import (
-    confusion_matrix,
-    roc_curve,
-    auc
-)
-
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy.stats import norm, uniform
+from sklearn.metrics import roc_curve, auc
 from typing import List, Tuple
+
 
 class AnalisisDescriptivo:
     """
@@ -354,78 +345,74 @@ class RegresionLineal(Regresion):
 
 
 
-class RegresionLogistica:
-    """""
-Este clase proporciona funciones para realizar regresión logística utilizando la librería statsmodels,
-incluyendo métricas de clasificación, predicción con umbral personalizado y curva ROC con AUC.
+class RegresionLogistica(Regresion):
+    """
+    Regresión logística con métricas, predicción y curva ROC.
     """
 
-    def __init__(self, x, y):
-        """
-        Inicializa una instancia de la clase RegresionLogistica.
-        """
-      super().__init__(x, y)
+    def __init__(self, x: pd.DataFrame, y: pd.Series):
+        super().__init__(x, y)
+        self.betas = None
+        self.stderr = None
+        self.t_obs = None
+        self.p_valores = None
+
+    def entrenar(self):
+        self.ajustar_modelo_logistico()
+        self.betas = self.resultado.params
+        self.stderr = self.resultado.bse
+        self.t_obs = self.resultado.tvalues
+        self.p_valores = self.resultado.pvalues
+
+    def predecir(self, new_x: pd.DataFrame, umbral: float = 0.5):
+        if self.resultado is None:
+            raise ValueError("El modelo no ha sido entrenado.")
+        X_new = sm.add_constant(new_x)
+        y_prob = self.resultado.predict(X_new)
+        return (y_prob >= umbral).astype(int)
+
+def obtener_metricas(self, X_test: np.ndarray, y_test: np.ndarray) -> dict:
+    """
+    Calcula métricas de evaluación del modelo sobre un conjunto de prueba. 
+    Retorna matriz de confusión, error, sensibilidad y especificidad.
+    """
+    y_prob = self.resultados.predict(sm.add_constant(X_test))
+    y_pred = (y_prob >= 0.5).astype(int)
+
+    # Inicializamos contadores
+    tp = fp = tn = fn = 0
+
+    for real, pred in zip(y_test, y_pred):
+        if real == 1 and pred == 1:
+            tp += 1
+        elif real == 0 and pred == 0:
+            tn += 1
+        elif real == 0 and pred == 1:
+            fp += 1
+        elif real == 1 and pred == 0:
+            fn += 1
+
+    total = tp + fp + tn + fn
+    error = (fp + fn) / total if total > 0 else None
+    sensibilidad = tp / (tp + fn) if (tp + fn) > 0 else None
+    especificidad = tn / (tn + fp) if (tn + fp) > 0 else None
+
+    matriz_confusion = [[tn, fp], [fn, tp]]  # Misma estructura que sklearn
+
+    return {
+        'confusion_matrix': matriz_confusion,
+        'error': error,
+        'sensibilidad': sensibilidad,
+        'especificidad': especificidad
+    }
 
 
-    def entrenar(self, X: np.ndarray, y: np.ndarray):
-        """
-        Entrena el modelo de regresión logística utilizando statsmodels.
-
-        Ejemplo:
-            >>> X = np.array([[1], [2], [3], [4]])
-            >>> y = np.array([0, 0, 1, 1])
-            >>> model = RegresionLogistica()
-            >>> model.entrenar(X, y)
-        """
-        X = sm.add_constant(X)  # Agregar constante
-        self.modelo = sm.Logit(y, X)
-        self.resultados = self.modelo.fit(disp=0)
-
-        # Guardar estadísticas relevantes
-        self.betas = self.resultados.params
-        self.stderr = self.resultados.bse
-        self.t_obs = self.resultados.tvalues
-        self.p_valores = self.resultados.pvalues
-
-    def predecir(self, new_x):
-      miRLog = Regresion(self.x, self.y)
-      res = miRLog.ajustar_modelo_logistico()
-      X_new = sm.add_constant(new_x)
-
-      return res.predict(X_new)
-
-    def obtener_metricas(self, X_test: np.ndarray, y_test: np.ndarray) -> dict:
-        """
-        Calcula métricas de evaluación del modelo sobre un conjunto de prueba.
-
-            >>> model.obtener_metricas(X_test, y_test)
-            {'confusion_matrix': ..., 'error': ..., 'sensibilidad': ..., 'especificidad': ...}
-        """
-        y_pred = self.predecir(X_test)
-        cm = confusion_matrix(y_test, y_pred)
-        tn, fp, fn, tp = cm.ravel()
-        error = (fp + fn) / (tn + fp + fn + tp)
-        sensibilidad = tp / (tp + fn) if (tp + fn) > 0 else 0
-        especificidad = tn / (tn + fp) if (tn + fp) > 0 else 0
-
-        return {
-            'confusion_matrix': cm,
-            'error': error,
-            'sensibilidad': sensibilidad,
-            'especificidad': especificidad
-        }
-
-    def curva_roc(self, X_test: np.ndarray, y_test: np.ndarray) -> Tuple[np.ndarray, np.ndarray, float]:
-        """
-        Calcula y grafica la curva ROC del modelo.
-
-        """
+    def curva_roc(self, X_test: pd.DataFrame, y_test: pd.Series) -> Tuple[np.ndarray, np.ndarray, float]:
         X = sm.add_constant(X_test)
-        y_prob = self.resultados.predict(X)
+        y_prob = self.resultado.predict(X)
         fpr, tpr, _ = roc_curve(y_test, y_prob)
         auc_score = auc(fpr, tpr)
 
-        # Graficar la curva
         plt.figure(figsize=(6, 4))
         plt.plot(fpr, tpr, label=f'AUC = {auc_score:.2f}')
         plt.plot([0, 1], [0, 1], 'k--', label='Azar')
@@ -439,10 +426,10 @@ incluyendo métricas de clasificación, predicción con umbral personalizado y c
         return fpr, tpr, auc_score
 
     def resumen(self):
-        """
-        Imprime el resumen del modelo ajustado.
-        """
-        print(self.resultados.summary())
+        if self.resultado is None:
+            raise ValueError("Modelo no entrenado.")
+        print(self.resultado.summary())
+
 
 
 class Cualitativas:
@@ -450,7 +437,7 @@ class Cualitativas:
         """
         Test de bondad de ajuste mediante Método de Chi Cuadrado
         Entradas: observados = datos muestrales
-                  probabilidades teóricas bajo la hipótesis nula
+        probabilidades teóricas bajo la hipótesis nula
         """
         self.observados = observados
         self.p = probabilidades
