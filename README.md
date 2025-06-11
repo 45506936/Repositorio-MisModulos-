@@ -1,4 +1,4 @@
-# 📊 Mi Módulo Python de Estadística
+# Mi Módulo Python de Ciencia de Datos
 
 Este proyecto es un módulo en Python que agrupa herramientas estadísticas para análisis de datos, generación de muestras, ajuste de modelos de regresión y evaluación de modelos clasificadores.
 
@@ -6,7 +6,7 @@ Diseñado para quienes desean realizar análisis exploratorios y aplicar modelos
 
 ---
 
-## 🧠 Descripción General
+## Descripción General
 
 Este módulo proporciona clases fáciles de usar para:
 
@@ -18,7 +18,7 @@ Este módulo proporciona clases fáciles de usar para:
 
 ---
 
-## 🚀 Funcionalidades Principales
+## Funcionalidades Principales
 
 ### 🔹 `AnalisisDescriptivo`
 Clase para análisis exploratorio de datos. Permite:
